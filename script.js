@@ -20,7 +20,6 @@
     clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 3200);
   }
 
-  // Bloqueia o F11 nativo e exibe notificação
   window.addEventListener('keydown', (e) => {
     if (e.key === 'F11') {
       e.preventDefault();
@@ -28,9 +27,6 @@
     }
   });
 
-  /* ---------- Entrada ---------- */
-  // (Foi removido o carregamento automático do LocalStorage daqui)
-  
   const fromHash = location.hash.match(/sala=([a-z0-9]+)/i);
   if (fromHash) $('code').value = fromHash[1];
 
@@ -48,8 +44,6 @@
     if (!room) { msg('Digite um código de sala usando letras e números.'); return; }
     if (typeof Peer === 'undefined') { msg('Falha de biblioteca. Verifique a internet.'); return; }
     
-    // (Foi removido o salvamento automático do LocalStorage daqui)
-    
     msg('Estabelecendo conexão P2P...'); $('join').disabled = true;
     
     try { await claimSlot(); }
@@ -61,7 +55,6 @@
     history.replaceState(null, '', '#sala=' + room);
     
     $('share').disabled = !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
-    if ($('share').disabled) toast('Dispositivo incompatível com envio de tela.');
     
     discover();
     sweep = setInterval(() => { if (peer && !peer.disconnected) discover(); }, 20000);
@@ -73,7 +66,19 @@
       let n = 0;
       const attempt = () => {
         if (n >= MAX) return reject(new Error('Sala cheia (limite: ' + MAX + ').'));
-        const mine = n, p = new Peer(idFor(room, mine));
+        const mine = n;
+        
+        // ADIÇÃO DOS SERVIDORES STUN PARA FURAR FIREWALLS NAT
+        const p = new Peer(idFor(room, mine), {
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+          }
+        });
+        
         let settled = false;
         const timer = setTimeout(() => { if (!settled) { settled = true; p.destroy(); reject(new Error('Timeout.')); } }, 12000);
         p.on('open', id => { if (settled) return; settled = true; clearTimeout(timer); peer = p; slot = mine; myId = id; wire(p); resolve(); });
@@ -95,7 +100,6 @@
     p.on('error', err => { if (err.type !== 'peer-unavailable') console.warn('Visor:', err.type); });
   }
 
-  /* ---------- Pessoas ---------- */
   function discover() {
     for (let j = 0; j < MAX; j++) {
       if (j === slot) continue;
@@ -142,7 +146,6 @@
 
   const broadcast = data => conns.forEach(c => { if (c.open) c.send(data); });
 
-  /* ---------- Qualidade e Vídeo ---------- */
   function getVideoConstraints() {
     const fps = parseInt($('fpsSelect').value, 10);
     const res = parseInt($('resSelect').value, 10);
@@ -214,7 +217,9 @@
       return;
     }
     const track = localStream.getVideoTracks()[0];
-    try { track.contentHint = 'detail'; } catch {}
+    // ALTERAÇÃO PARA PRIORIZAR FLUIDEZ DE MOVIMENTO E EVITAR TRAVADAS DO MOUSE
+    try { track.contentHint = 'motion'; } catch {} 
+    
     track.addEventListener('ended', stopShare);
     addTile('self', localStream);
     conns.forEach((_, pid) => callPeer(pid));
@@ -230,7 +235,6 @@
     removeTile('self'); renderAll();
   }
 
-  /* ---------- Interface & Tela Cheia Estável (Fake Fullscreen) ---------- */
   function labelFor(pid) { return pid === 'self' ? 'Você' : (names.get(pid) || 'Participante'); }
 
   function addTile(pid, stream) {
@@ -309,7 +313,6 @@
     if (peer) { peer.destroy(); peer = null; }
     history.replaceState(null, '', location.pathname);
     
-    // Limpa também os campos quando o usuário clica em desconectar
     $('name').value = '';
     $('code').value = '';
     

@@ -17,7 +17,8 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100vh; overflow: hidden; }
+/* Removido o overflow: hidden global para evitar travamento mobile */
+html, body { margin: 0; min-height: 100vh; }
 
 body {
   font-family: var(--font-ui);
@@ -160,28 +161,12 @@ input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px 
 #toast.on { transform: translateX(0); }
 
 /* Créditos Developer */
-.credits {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-mute);
-  margin-top: 1.5rem;
-  font-family: var(--font-tech);
-}
-.sidebar-footer .credits {
-  margin-top: 0.5rem;
-}
-.credits a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s;
-}
-.credits a:hover {
-  color: #fff;
-  text-decoration: underline;
-}
+.credits { text-align: center; font-size: 0.75rem; color: var(--text-mute); margin-top: 1.5rem; font-family: var(--font-tech); }
+.sidebar-footer .credits { margin-top: 0.5rem; }
+.credits a { color: var(--accent); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+.credits a:hover { color: #fff; text-decoration: underline; }
 
-/* Media Queries */
+/* Media Queries - MOBILE FIX SCROLL */
 @media (max-width: 900px) {
   .topbar { flex-direction: column; align-items: stretch; padding: 1rem; }
   .actions { width: 100%; justify-content: space-between; }
@@ -190,11 +175,11 @@ input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px 
 }
 
 @media (max-width: 768px) {
-  #room { flex-direction: column; overflow-y: auto; }
+  #room { flex-direction: column; overflow-y: visible; height: auto; min-height: 100vh; }
   .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--line); flex-shrink: 0; }
-  .users-section { max-height: 200px; }
-  .stage { overflow-y: visible; }
-  .video-area { padding: 1rem; }
+  .users-section { max-height: 200px; overflow-y: auto; }
+  .stage { overflow: visible; }
+  .video-area { padding: 1rem; overflow: visible; }
   .grid { grid-template-columns: 1fr; }
   #toast { bottom: 1rem; right: 1rem; max-width: calc(100vw - 2rem); font-size: 0.85rem; padding: 0.8rem 1rem; }
 }
