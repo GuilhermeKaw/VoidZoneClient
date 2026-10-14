@@ -23,7 +23,7 @@
   window.addEventListener('keydown', (e) => {
     if (e.key === 'F11') {
       e.preventDefault();
-      toast('Use o botão de tela cheia no canto do vídeo para evitar falhas de imagem.');
+      toast('Use o botão de ecrã inteiro no canto do vídeo para evitar falhas de imagem.');
     }
   });
 
@@ -44,7 +44,7 @@
     if (!room) { msg('Digite um código de sala usando letras e números.'); return; }
     if (typeof Peer === 'undefined') { msg('Falha de biblioteca. Verifique a internet.'); return; }
     
-    msg('Estabelecendo conexão P2P...'); $('join').disabled = true;
+    msg('A estabelecer ligação P2P...'); $('join').disabled = true;
     
     try { await claimSlot(); }
     catch (err) { msg(err.message); $('join').disabled = false; return; }
@@ -68,13 +68,23 @@
         if (n >= MAX) return reject(new Error('Sala cheia (limite: ' + MAX + ').'));
         const mine = n;
         
-        // ADIÇÃO DOS SERVIDORES STUN PARA FURAR FIREWALLS NAT
         const p = new Peer(idFor(room, mine), {
           config: {
             iceServers: [
+              // STUN: Tenta a conexão direta primeiro
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:stun1.l.google.com:19302' },
-              { urls: 'stun:stun2.l.google.com:19302' }
+              // TURN: Força a passagem de vídeo se a operadora bloquear o P2P (CGNAT rígido)
+              {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+              },
+              {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+              }
             ]
           }
         });
@@ -86,7 +96,7 @@
           if (settled) return;
           settled = true; clearTimeout(timer); p.destroy();
           if (err.type === 'unavailable-id') { n++; attempt(); }
-          else reject(new Error('Erro de conexão ao servidor PeerJS.'));
+          else reject(new Error('Erro de ligação ao servidor PeerJS.'));
         });
       };
       attempt();
@@ -140,7 +150,7 @@
     const o = outCalls.get(pid); if (o) { outCalls.delete(pid); o.close(); }
     const i = inCalls.get(pid); if (i) { inCalls.delete(pid); i.close(); }
     removeTile(pid);
-    if (who) toast(who + ' desconectou.');
+    if (who) toast(who + ' desligou.');
     tune(); renderAll();
   }
 
@@ -161,9 +171,9 @@
     if (track) {
       try {
         await track.applyConstraints(getVideoConstraints());
-        toast('Configurações de transmissão atualizadas.');
+        toast('Definições de transmissão atualizadas.');
       } catch (err) {
-        toast('Seu navegador não suporta alterar essa configuração com a tela ativa.');
+        toast('O seu navegador não suporta alterar esta definição com o ecrã ativo.');
       }
     }
   }
@@ -213,11 +223,11 @@
         audio: false 
       });
     } catch (e) {
-      if (e && e.name !== 'NotAllowedError') toast('Erro ao capturar tela.');
+      if (e && e.name !== 'NotAllowedError') toast('Erro ao capturar ecrã.');
       return;
     }
     const track = localStream.getVideoTracks()[0];
-    // ALTERAÇÃO PARA PRIORIZAR FLUIDEZ DE MOVIMENTO E EVITAR TRAVADAS DO MOUSE
+    
     try { track.contentHint = 'motion'; } catch {} 
     
     track.addEventListener('ended', stopShare);
@@ -282,15 +292,15 @@
       .concat([...conns.keys()].map(pid => ({ name: names.get(pid) || 'Participante', live: tiles.has(pid) })));
     list.forEach(p => {
       const s = document.createElement('div'); s.className = 'chip' + (p.live ? ' live' : '');
-      s.title = p.live ? 'Transmitindo' : 'Ouvindo';
+      s.title = p.live ? 'A transmitir' : 'A ouvir';
       const dot = document.createElement('i'), txt = document.createElement('span'); txt.textContent = p.name;
       s.append(dot, txt); box.append(s);
     });
     const n = list.length;
-    $('count').textContent = n + ' CONECTADO' + (n === 1 ? '' : 'S');
+    $('count').textContent = n + ' LIGADO' + (n === 1 ? '' : 'S');
     
     const sharing = !!localStream;
-    $('share').innerHTML = sharing ? '<i class="fa-solid fa-stop"></i> Parar' : '<i class="fa-solid fa-desktop"></i> Compartilhar';
+    $('share').innerHTML = sharing ? '<i class="fa-solid fa-stop"></i> Parar' : '<i class="fa-solid fa-desktop"></i> Partilhar';
     $('share').classList.toggle('live', sharing); 
     
     const empty = $('empty'); empty.hidden = tiles.size > 0;
